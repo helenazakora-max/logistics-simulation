@@ -1,0 +1,1712 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CargoSafe Pro — Симулятор кріплення вантажів</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@300;400;500;600;700;800&family=Barlow:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:       #0d1117;
+  --s1:       #161b22;
+  --s2:       #1c2128;
+  --s3:       #21262d;
+  --border:   #30363d;
+  --border2:  #3d444e;
+  --amber:    #e6a817;
+  --amber2:   #f0bc42;
+  --safe:     #3fb950;
+  --danger:   #f85149;
+  --warn:     #d29922;
+  --info:     #58a6ff;
+  --purple:   #bc8cff;
+  --text:     #c9d1d9;
+  --text2:    #8b949e;
+  --text3:    #484f58;
+  --red-glow: 0 0 20px rgba(248,81,73,0.4);
+  --grn-glow: 0 0 20px rgba(63,185,80,0.3);
+  --amb-glow: 0 0 20px rgba(230,168,23,0.3);
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+html,body{height:100%;overflow-x:hidden;}
+body{font-family:'Barlow',sans-serif;background:var(--bg);color:var(--text);font-size:14px;line-height:1.5;}
+::-webkit-scrollbar{width:6px;height:6px;}
+::-webkit-scrollbar-track{background:var(--s1);}
+::-webkit-scrollbar-thumb{background:var(--border2);border-radius:3px;}
+::-webkit-scrollbar-thumb:hover{background:#5a636e;}
+
+/* ─── HEADER ─── */
+.app-header{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:0 20px;height:52px;
+  background:var(--s1);
+  border-bottom:1px solid var(--border);
+  position:sticky;top:0;z-index:100;
+}
+.logo{display:flex;align-items:center;gap:10px;}
+.logo-icon{
+  width:32px;height:32px;background:var(--amber);border-radius:6px;
+  display:flex;align-items:center;justify-content:center;
+  font-size:18px;color:#000;
+}
+.logo-text{font-family:'Barlow Condensed',sans-serif;font-size:18px;font-weight:700;letter-spacing:1px;}
+.logo-sub{font-size:10px;color:var(--text2);letter-spacing:2px;text-transform:uppercase;font-family:'JetBrains Mono',monospace;}
+.header-badge{
+  background:rgba(230,168,23,0.1);border:1px solid rgba(230,168,23,0.3);
+  color:var(--amber);font-size:10px;font-weight:700;letter-spacing:2px;text-transform:uppercase;
+  padding:4px 10px;border-radius:4px;font-family:'JetBrains Mono',monospace;
+}
+.header-status{display:flex;align-items:center;gap:16px;}
+.status-dot{width:8px;height:8px;border-radius:50%;background:var(--safe);box-shadow:0 0 8px var(--safe);animation:pulse 2s infinite;}
+@keyframes pulse{0%,100%{opacity:1;}50%{opacity:0.4;}}
+
+/* ─── LAYOUT ─── */
+.app-body{
+  display:grid;
+  grid-template-columns:280px 1fr 320px;
+  height:calc(100vh - 52px);
+  overflow:hidden;
+}
+@media(max-width:1100px){.app-body{grid-template-columns:240px 1fr 280px;}}
+@media(max-width:860px){
+  .app-body{grid-template-columns:1fr;height:auto;overflow:auto;}
+  .config-panel,.results-panel{max-height:none;}
+}
+
+/* ─── PANELS ─── */
+.config-panel,.results-panel{
+  overflow-y:auto;
+  padding:16px;
+  background:var(--s1);
+  border-right:1px solid var(--border);
+}
+.results-panel{border-right:none;border-left:1px solid var(--border);}
+.sim-panel{
+  display:flex;flex-direction:column;
+  overflow:hidden;background:var(--bg);
+}
+
+/* ─── SECTION HEADER ─── */
+.sec-head{
+  font-family:'Barlow Condensed',sans-serif;
+  font-size:11px;font-weight:700;letter-spacing:2.5px;text-transform:uppercase;
+  color:var(--text3);margin:16px 0 10px;display:flex;align-items:center;gap:6px;
+}
+.sec-head:first-child{margin-top:0;}
+.sec-head::after{content:'';flex:1;height:1px;background:var(--border);}
+
+/* ─── CARGO TYPE GRID ─── */
+.type-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:2px;}
+.type-card{
+  background:var(--s2);border:1px solid var(--border);border-radius:8px;
+  padding:8px 6px;text-align:center;cursor:pointer;transition:all .18s;
+}
+.type-card:hover{border-color:var(--border2);}
+.type-card.active{border-color:var(--amber);background:rgba(230,168,23,0.08);}
+.type-icon{font-size:20px;display:block;margin-bottom:3px;}
+.type-label{font-size:10px;font-weight:600;color:var(--text2);font-family:'Barlow Condensed',sans-serif;letter-spacing:.5px;}
+.type-card.active .type-label{color:var(--amber);}
+
+/* ─── INPUT GROUPS ─── */
+.inp-group{margin-bottom:12px;}
+.inp-label{
+  font-size:11px;font-weight:600;color:var(--text2);margin-bottom:6px;
+  display:flex;justify-content:space-between;align-items:center;
+  font-family:'Barlow Condensed',sans-serif;letter-spacing:.5px;text-transform:uppercase;
+}
+.inp-unit{
+  background:rgba(88,166,255,0.1);color:var(--info);
+  font-size:9px;font-weight:700;padding:2px 6px;border-radius:3px;
+  font-family:'JetBrains Mono',monospace;letter-spacing:.5px;
+}
+input[type=number],select{
+  width:100%;background:var(--s3);border:1px solid var(--border);
+  border-radius:6px;color:var(--text);
+  font-family:'JetBrains Mono',monospace;font-size:13px;font-weight:500;
+  padding:7px 10px;outline:none;transition:border-color .15s,box-shadow .15s;
+  -webkit-appearance:none;
+}
+input[type=number]:focus,select:focus{border-color:var(--amber);box-shadow:0 0 0 2px rgba(230,168,23,0.15);}
+input[type=range]{
+  width:100%;accent-color:var(--amber);cursor:pointer;
+  -webkit-appearance:none;appearance:none;
+  height:3px;background:var(--s3);border-radius:2px;outline:none;
+  border:1px solid var(--border);
+}
+input[type=range]::-webkit-slider-thumb{
+  -webkit-appearance:none;width:14px;height:14px;border-radius:50%;
+  background:var(--amber);cursor:pointer;border:2px solid var(--bg);
+}
+.range-row{display:flex;align-items:center;gap:8px;margin-top:6px;}
+.range-val{min-width:44px;text-align:right;font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:700;color:var(--amber);}
+
+/* ─── SURFACE SELECTOR ─── */
+.surf-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px;}
+.surf-card{
+  background:var(--s2);border:1px solid var(--border);border-radius:6px;
+  padding:7px 8px;cursor:pointer;transition:all .15s;
+}
+.surf-card:hover{border-color:var(--border2);}
+.surf-card.active{border-color:var(--amber);background:rgba(230,168,23,0.07);}
+.surf-name{font-size:10px;font-weight:600;color:var(--text2);font-family:'Barlow Condensed',sans-serif;letter-spacing:.3px;}
+.surf-mu{font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:700;color:var(--amber);}
+.surf-card.active .surf-name{color:var(--text);}
+
+/* ─── SECURING ELEMENTS ─── */
+.sec-list{display:flex;flex-direction:column;gap:6px;margin-bottom:10px;}
+.sec-item{
+  background:var(--s2);border:1px solid var(--border);border-radius:8px;
+  padding:10px 12px;position:relative;
+}
+.sec-item-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;}
+.sec-item-title{font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:700;color:var(--text);display:flex;align-items:center;gap:6px;}
+.sec-item-del{
+  background:rgba(248,81,73,0.1);border:1px solid rgba(248,81,73,0.3);
+  color:var(--danger);border-radius:4px;padding:2px 7px;font-size:11px;
+  cursor:pointer;transition:all .15s;font-family:'JetBrains Mono',monospace;
+}
+.sec-item-del:hover{background:rgba(248,81,73,0.2);}
+.sec-item-row{display:grid;grid-template-columns:1fr 1fr;gap:6px;}
+.sec-item-row .inp-label{font-size:10px;}
+
+.add-sec-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px;}
+.add-sec-btn{
+  background:var(--s2);border:1px dashed var(--border2);border-radius:6px;
+  padding:8px;text-align:center;cursor:pointer;transition:all .15s;
+}
+.add-sec-btn:hover{border-color:var(--amber);background:rgba(230,168,23,0.05);}
+.add-sec-icon{font-size:18px;display:block;}
+.add-sec-name{font-size:10px;font-weight:600;color:var(--text2);font-family:'Barlow Condensed',sans-serif;}
+
+/* ─── BUTTONS ─── */
+.btn{
+  display:flex;align-items:center;justify-content:center;gap:7px;
+  border:none;border-radius:7px;cursor:pointer;font-family:'Barlow Condensed',sans-serif;
+  font-size:14px;font-weight:700;letter-spacing:.5px;padding:9px 14px;
+  transition:all .18s;width:100%;margin-bottom:7px;
+}
+.btn:active{transform:scale(0.97);}
+.btn-primary{background:var(--amber);color:#0d1117;box-shadow:0 2px 12px rgba(230,168,23,0.3);}
+.btn-primary:hover{background:var(--amber2);box-shadow:0 4px 20px rgba(230,168,23,0.45);}
+.btn-danger{background:rgba(248,81,73,0.15);border:1px solid rgba(248,81,73,0.5);color:var(--danger);}
+.btn-danger:hover{background:rgba(248,81,73,0.25);}
+.btn-ghost{background:var(--s2);border:1px solid var(--border);color:var(--text2);}
+.btn-ghost:hover{border-color:var(--border2);color:var(--text);}
+.btn-info{background:rgba(88,166,255,0.1);border:1px solid rgba(88,166,255,0.3);color:var(--info);}
+
+/* ─── SCENARIO BAR ─── */
+.scenario-bar{
+  display:flex;gap:4px;padding:10px 16px;
+  background:var(--s1);border-bottom:1px solid var(--border);
+  overflow-x:auto;flex-shrink:0;
+}
+.scen-btn{
+  display:flex;align-items:center;gap:6px;
+  padding:5px 12px;border-radius:5px;border:1px solid var(--border);
+  background:var(--s2);cursor:pointer;transition:all .15s;white-space:nowrap;
+  font-family:'Barlow Condensed',sans-serif;font-size:12px;font-weight:600;
+  color:var(--text2);letter-spacing:.3px;
+}
+.scen-btn:hover{border-color:var(--border2);}
+.scen-btn.active{border-color:var(--amber);background:rgba(230,168,23,0.1);color:var(--amber);}
+.scen-dot{width:7px;height:7px;border-radius:50%;}
+
+/* ─── CANVAS AREA ─── */
+.canvas-wrap{
+  flex:1;display:flex;flex-direction:column;
+  position:relative;overflow:hidden;
+  background:var(--bg);
+}
+#mainCanvas{display:block;width:100%;height:100%;cursor:crosshair;}
+.canvas-overlay{
+  position:absolute;top:0;left:0;right:0;bottom:0;
+  pointer-events:none;
+}
+.canvas-status{
+  position:absolute;top:12px;right:12px;
+  font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:700;
+  padding:6px 12px;border-radius:5px;letter-spacing:1px;
+  transition:all .3s;
+}
+.cs-safe{background:rgba(63,185,80,0.15);border:1px solid rgba(63,185,80,0.5);color:var(--safe);box-shadow:var(--grn-glow);}
+.cs-warn{background:rgba(210,153,34,0.15);border:1px solid rgba(210,153,34,0.5);color:var(--warn);}
+.cs-danger{background:rgba(248,81,73,0.15);border:1px solid rgba(248,81,73,0.5);color:var(--danger);box-shadow:var(--red-glow);animation:blink .8s step-end infinite;}
+@keyframes blink{0%,100%{opacity:1;}50%{opacity:.4;}}
+.canvas-info{
+  position:absolute;bottom:12px;left:12px;
+  display:flex;gap:8px;flex-wrap:wrap;
+}
+.ci-tag{
+  background:rgba(0,0,0,0.65);border:1px solid var(--border);
+  color:var(--text2);font-size:10px;font-family:'JetBrains Mono',monospace;
+  padding:4px 8px;border-radius:4px;backdrop-filter:blur(4px);
+}
+
+/* ─── ACCIDENT OVERLAY ─── */
+#accidentOverlay{
+  position:absolute;inset:0;
+  background:rgba(0,0,0,0);
+  pointer-events:none;
+  transition:background .3s;
+  display:flex;align-items:center;justify-content:center;
+}
+#accidentOverlay.flash{background:rgba(248,81,73,0.3);}
+.accident-label{
+  font-family:'Barlow Condensed',sans-serif;font-size:36px;font-weight:800;
+  color:#fff;text-shadow:0 0 30px var(--danger);letter-spacing:4px;
+  display:none;
+}
+
+/* ─── RESULTS PANEL ─── */
+.sf-badge{
+  display:flex;align-items:center;gap:12px;
+  padding:14px 16px;border-radius:10px;margin-bottom:12px;
+  border:2px solid;transition:all .4s;
+}
+.sf-badge-safe{border-color:var(--safe);background:rgba(63,185,80,0.08);}
+.sf-badge-acceptable{border-color:var(--warn);background:rgba(210,153,34,0.08);}
+.sf-badge-unsafe{border-color:var(--danger);background:rgba(248,81,73,0.1);box-shadow:var(--red-glow);}
+.sf-num{font-family:'JetBrains Mono',monospace;font-size:32px;font-weight:700;}
+.sf-label{font-family:'Barlow Condensed',sans-serif;font-size:11px;letter-spacing:2px;text-transform:uppercase;opacity:.8;}
+.sf-class{font-family:'Barlow Condensed',sans-serif;font-size:18px;font-weight:700;letter-spacing:1px;}
+
+.force-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:12px;}
+.fc{
+  background:var(--s2);border:1px solid var(--border);border-radius:7px;
+  padding:9px 10px;
+}
+.fc-name{font-size:10px;color:var(--text2);font-family:'Barlow Condensed',sans-serif;letter-spacing:.5px;text-transform:uppercase;margin-bottom:3px;}
+.fc-val{font-family:'JetBrains Mono',monospace;font-size:16px;font-weight:700;}
+.fc-sub{font-size:10px;color:var(--text3);margin-top:2px;}
+.fc-formula{font-size:9px;color:var(--text3);font-family:'JetBrains Mono',monospace;}
+
+/* Progress bar */
+.prog-bar-wrap{margin-bottom:4px;}
+.prog-bar-label{display:flex;justify-content:space-between;font-size:10px;color:var(--text2);margin-bottom:4px;font-family:'Barlow Condensed',sans-serif;letter-spacing:.3px;}
+.prog-track{height:6px;background:var(--s3);border-radius:3px;overflow:hidden;border:1px solid var(--border);}
+.prog-fill{height:100%;border-radius:3px;transition:width .5s cubic-bezier(.23,1,.32,1),background .3s;}
+
+/* Strap details */
+.strap-row{
+  display:flex;align-items:center;gap:8px;
+  padding:8px 10px;background:var(--s2);border:1px solid var(--border);
+  border-radius:6px;margin-bottom:5px;font-size:11px;
+}
+.strap-status{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
+.strap-detail{flex:1;}
+.strap-name{font-weight:600;color:var(--text);font-family:'Barlow Condensed',sans-serif;}
+.strap-data{color:var(--text2);font-family:'JetBrains Mono',monospace;font-size:10px;margin-top:2px;}
+
+/* Error messages */
+.err-item{
+  background:rgba(248,81,73,0.07);border:1px solid rgba(248,81,73,0.25);
+  border-radius:7px;padding:10px 12px;margin-bottom:7px;
+}
+.err-title{font-size:12px;font-weight:700;color:var(--danger);margin-bottom:4px;font-family:'Barlow Condensed',sans-serif;letter-spacing:.5px;}
+.err-desc{font-size:11px;color:var(--text2);line-height:1.5;}
+.err-fix{font-size:11px;color:var(--safe);margin-top:5px;font-style:italic;}
+
+.warn-item{
+  background:rgba(210,153,34,0.07);border:1px solid rgba(210,153,34,0.25);
+  border-radius:7px;padding:10px 12px;margin-bottom:7px;
+}
+.warn-title{font-size:12px;font-weight:700;color:var(--warn);margin-bottom:4px;font-family:'Barlow Condensed',sans-serif;}
+.warn-desc{font-size:11px;color:var(--text2);line-height:1.5;}
+
+.ok-item{
+  background:rgba(63,185,80,0.06);border:1px solid rgba(63,185,80,0.2);
+  border-radius:7px;padding:10px 12px;
+}
+.ok-title{font-size:12px;font-weight:700;color:var(--safe);margin-bottom:4px;font-family:'Barlow Condensed',sans-serif;}
+
+/* Scenario comparison table */
+.scen-table{width:100%;border-collapse:collapse;font-size:11px;margin-bottom:8px;}
+.scen-table th{
+  font-family:'Barlow Condensed',sans-serif;font-size:10px;letter-spacing:1px;
+  text-transform:uppercase;color:var(--text3);padding:4px 8px;
+  border-bottom:1px solid var(--border);text-align:left;
+}
+.scen-table td{padding:5px 8px;border-bottom:1px solid var(--border);font-family:'JetBrains Mono',monospace;}
+.scen-table tr:last-child td{border-bottom:none;}
+.scen-table tr.worst td{background:rgba(248,81,73,0.06);}
+.chip{display:inline-block;padding:1px 6px;border-radius:3px;font-size:9px;font-weight:700;}
+.chip-safe{background:rgba(63,185,80,0.15);color:var(--safe);}
+.chip-warn{background:rgba(210,153,34,0.15);color:var(--warn);}
+.chip-danger{background:rgba(248,81,73,0.15);color:var(--danger);}
+
+/* Tipping visual */
+.tip-ring{
+  width:100%;height:14px;background:var(--s3);border-radius:7px;
+  position:relative;overflow:hidden;border:1px solid var(--border);margin:6px 0;
+}
+.tip-fill{height:100%;border-radius:7px;transition:width .5s,background .3s;}
+.tip-threshold{position:absolute;top:0;bottom:0;width:2px;background:rgba(248,81,73,0.7);}
+
+/* Legend */
+.legend{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px;}
+.leg-item{display:flex;align-items:center;gap:5px;font-size:10px;color:var(--text2);}
+.leg-dot{width:8px;height:8px;border-radius:2px;flex-shrink:0;}
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<header class="app-header">
+  <div class="logo">
+    <div class="logo-icon">⚙</div>
+    <div>
+      <div class="logo-text">CargoSafe Pro</div>
+      <div class="logo-sub">Transport Engineering Simulator</div>
+    </div>
+  </div>
+  <div class="header-badge">EN 12195-1 : 2010</div>
+  <div class="header-status">
+    <div style="display:flex;align-items:center;gap:6px;font-size:11px;font-family:'JetBrains Mono',monospace;">
+      <div class="status-dot"></div>
+      <span id="hdrStatus" style="color:var(--text2)">АНАЛІЗ АКТИВНИЙ</span>
+    </div>
+  </div>
+</header>
+
+<!-- BODY -->
+<div class="app-body">
+
+  <!-- ══════════════ LEFT PANEL ══════════════ -->
+  <aside class="config-panel">
+
+    <div class="sec-head">Тип вантажу</div>
+    <div class="type-grid" id="typeGrid">
+      <div class="type-card active" data-type="pallet" onclick="setCargoType(this)">
+        <span class="type-icon">📦</span><span class="type-label">Піддон</span>
+      </div>
+      <div class="type-card" data-type="roll" onclick="setCargoType(this)">
+        <span class="type-icon">🛢</span><span class="type-label">Рулон</span>
+      </div>
+      <div class="type-card" data-type="bulk" onclick="setCargoType(this)">
+        <span class="type-icon">⛏</span><span class="type-label">Насипний</span>
+      </div>
+      <div class="type-card" data-type="oversized" onclick="setCargoType(this)">
+        <span class="type-icon">🏗</span><span class="type-label">Негабарит</span>
+      </div>
+      <div class="type-card" data-type="machinery" onclick="setCargoType(this)">
+        <span class="type-icon">⚙</span><span class="type-label">Техніка</span>
+      </div>
+      <div class="type-card" data-type="container" onclick="setCargoType(this)">
+        <span class="type-icon">🗃</span><span class="type-label">Контейнер</span>
+      </div>
+    </div>
+
+    <div class="sec-head" style="margin-top:14px;">Параметри вантажу</div>
+
+    <div class="inp-group">
+      <div class="inp-label">Маса <span class="inp-unit">КГ</span></div>
+      <input type="number" id="p_mass" value="4500" min="50" max="30000" step="50" oninput="onInputChange()">
+    </div>
+    <div class="inp-group">
+      <div class="inp-label">Довжина (X) <span class="inp-unit">М</span></div>
+      <div class="range-row">
+        <input type="range" id="p_len_r" min="0.4" max="6" step="0.1" value="2.4" oninput="syncR('p_len',this.value)">
+        <input type="number" id="p_len" value="2.4" min="0.4" max="6" step="0.1" style="width:70px" oninput="syncR('p_len_r',this.value)">
+      </div>
+    </div>
+    <div class="inp-group">
+      <div class="inp-label">Ширина (Y) <span class="inp-unit">М</span></div>
+      <div class="range-row">
+        <input type="range" id="p_wid_r" min="0.3" max="2.5" step="0.1" value="1.2" oninput="syncR('p_wid',this.value)">
+        <input type="number" id="p_wid" value="1.2" min="0.3" max="2.5" step="0.1" style="width:70px" oninput="syncR('p_wid_r',this.value)">
+      </div>
+    </div>
+    <div class="inp-group">
+      <div class="inp-label">Висота (Z) <span class="inp-unit">М</span></div>
+      <div class="range-row">
+        <input type="range" id="p_hgt_r" min="0.2" max="4" step="0.1" value="1.6" oninput="syncR('p_hgt',this.value)">
+        <input type="number" id="p_hgt" value="1.6" min="0.2" max="4" step="0.1" style="width:70px" oninput="syncR('p_hgt_r',this.value)">
+      </div>
+    </div>
+    <div class="inp-group">
+      <div class="inp-label">Висота ЦМ <span style="font-size:9px;color:var(--text3)">від підлоги</span> <span class="inp-unit">М</span></div>
+      <div class="range-row">
+        <input type="range" id="p_com_r" min="0.1" max="4" step="0.05" value="0.8" oninput="syncR('p_com',this.value)">
+        <input type="number" id="p_com" value="0.8" min="0.1" max="4" step="0.05" style="width:70px" oninput="syncR('p_com_r',this.value)">
+      </div>
+    </div>
+
+    <div class="sec-head">Поверхня / тертя</div>
+    <div class="surf-grid" id="surfGrid">
+      <div class="surf-card" data-surf="metal_metal" onclick="setSurface(this)">
+        <div class="surf-name">Метал / Метал</div>
+        <div class="surf-mu">μ = 0.15</div>
+      </div>
+      <div class="surf-card active" data-surf="metal_wood" onclick="setSurface(this)">
+        <div class="surf-name">Метал / Дерево</div>
+        <div class="surf-mu">μ = 0.35</div>
+      </div>
+      <div class="surf-card" data-surf="metal_rubber" onclick="setSurface(this)">
+        <div class="surf-name">Метал / Гума</div>
+        <div class="surf-mu">μ = 0.45</div>
+      </div>
+      <div class="surf-card" data-surf="wood_wood" onclick="setSurface(this)">
+        <div class="surf-name">Дерево / Дерево</div>
+        <div class="surf-mu">μ = 0.40</div>
+      </div>
+      <div class="surf-card" data-surf="antiSlip" onclick="setSurface(this)">
+        <div class="surf-name">Антиковзний мат</div>
+        <div class="surf-mu">μ = 0.60</div>
+      </div>
+      <div class="surf-card" data-surf="painted" onclick="setSurface(this)">
+        <div class="surf-name">Фарбований метал</div>
+        <div class="surf-mu">μ = 0.10</div>
+      </div>
+    </div>
+
+    <div class="sec-head" style="margin-top:14px;">Елементи кріплення</div>
+    <div id="secList" class="sec-list"></div>
+
+    <div class="add-sec-grid">
+      <div class="add-sec-btn" onclick="addSecuring('strap')">
+        <span class="add-sec-icon">🔗</span>
+        <span class="add-sec-name">+ Ремінь</span>
+      </div>
+      <div class="add-sec-btn" onclick="addSecuring('chain')">
+        <span class="add-sec-icon">⛓</span>
+        <span class="add-sec-name">+ Ланцюг</span>
+      </div>
+      <div class="add-sec-btn" onclick="addSecuring('blocking')">
+        <span class="add-sec-icon">🧱</span>
+        <span class="add-sec-name">+ Упор</span>
+      </div>
+      <div class="add-sec-btn" onclick="addSecuring('antiSlipMat')">
+        <span class="add-sec-icon">🟩</span>
+        <span class="add-sec-name">+ Антиковзний мат</span>
+      </div>
+    </div>
+
+    <div style="margin-top:14px;">
+      <button class="btn btn-ghost" onclick="generateTask()">🎲 Генерувати задачу</button>
+    </div>
+  </aside>
+
+  <!-- ══════════════ CENTER PANEL ══════════════ -->
+  <div class="sim-panel">
+
+    <!-- Scenario bar -->
+    <div class="scenario-bar">
+      <div class="scen-btn active" data-scen="braking" onclick="setScenario(this)">
+        <div class="scen-dot" style="background:#f85149;box-shadow:0 0 5px #f85149;"></div>
+        Гальмування 0.8g
+      </div>
+      <div class="scen-btn" data-scen="turning_L" onclick="setScenario(this)">
+        <div class="scen-dot" style="background:#e6a817;"></div>
+        Поворот вліво 0.5g
+      </div>
+      <div class="scen-btn" data-scen="turning_R" onclick="setScenario(this)">
+        <div class="scen-dot" style="background:#e6a817;"></div>
+        Поворот вправо 0.5g
+      </div>
+      <div class="scen-btn" data-scen="acceleration" onclick="setScenario(this)">
+        <div class="scen-dot" style="background:#58a6ff;"></div>
+        Прискорення 0.5g
+      </div>
+      <div class="scen-btn" data-scen="uneven" onclick="setScenario(this)">
+        <div class="scen-dot" style="background:#bc8cff;"></div>
+        Нерівність 0.3g
+      </div>
+    </div>
+
+    <!-- Canvas -->
+    <div class="canvas-wrap">
+      <canvas id="mainCanvas"></canvas>
+      <div class="canvas-overlay">
+        <div class="canvas-status cs-warn" id="canvasStatus">⏸ ВВЕДІТЬ ДАНІ</div>
+        <div class="canvas-info">
+          <div class="ci-tag" id="ci_sf">SF = —</div>
+          <div class="ci-tag" id="ci_fric">μ = —</div>
+          <div class="ci-tag" id="ci_tip">Опрокидання = —</div>
+          <div class="ci-tag" id="ci_scen">Сценарій: Гальмування</div>
+        </div>
+      </div>
+      <div id="accidentOverlay">
+        <div class="accident-label" id="accLabel">⚠ АВАРІЯ!</div>
+      </div>
+    </div>
+
+    <!-- Bottom control bar -->
+    <div style="display:flex;gap:8px;padding:10px 16px;background:var(--s1);border-top:1px solid var(--border);flex-shrink:0;">
+      <button class="btn btn-primary" style="margin:0;flex:1;" onclick="runCalculation()">▶ Розрахувати</button>
+      <button class="btn btn-danger" style="margin:0;flex:1;" id="accidentBtn" onclick="runAccidentMode()">💥 Режим аварії</button>
+      <button class="btn btn-ghost" style="margin:0;width:auto;padding:9px 16px;" onclick="resetAll()">↺</button>
+    </div>
+  </div>
+
+  <!-- ══════════════ RIGHT PANEL ══════════════ -->
+  <aside class="results-panel">
+
+    <div class="sec-head">Класифікація безпеки</div>
+    <div class="sf-badge sf-badge-acceptable" id="sfBadge">
+      <div>
+        <div class="sf-num" id="sfNum" style="color:var(--warn)">—</div>
+        <div class="sf-label">Коефіцієнт безпеки</div>
+      </div>
+      <div style="flex:1;text-align:right;">
+        <div class="sf-class" id="sfClass" style="color:var(--warn)">НЕ РОЗРАХОВАНО</div>
+        <div style="font-size:10px;color:var(--text3);margin-top:3px;font-family:'JetBrains Mono',monospace;">SF ≥ 1.5 = БЕЗПЕЧНО</div>
+      </div>
+    </div>
+
+    <div class="sec-head">Сили</div>
+    <div class="force-grid" id="forceGrid">
+      <div class="fc">
+        <div class="fc-name">Сила інерції X</div>
+        <div class="fc-val" id="r_fix" style="color:var(--danger)">—</div>
+        <div class="fc-formula">m·g·cx</div>
+      </div>
+      <div class="fc">
+        <div class="fc-name">Сила інерції Y</div>
+        <div class="fc-val" id="r_fiy" style="color:var(--warn)">—</div>
+        <div class="fc-formula">m·g·cy</div>
+      </div>
+      <div class="fc">
+        <div class="fc-name">Сила тертя</div>
+        <div class="fc-val" id="r_ffric" style="color:var(--safe)">—</div>
+        <div class="fc-formula">μ·m·g</div>
+      </div>
+      <div class="fc">
+        <div class="fc-name">Потрібне кріплення</div>
+        <div class="fc-val" id="r_fnet" style="color:var(--amber)">—</div>
+        <div class="fc-formula">F_in − F_fr</div>
+      </div>
+      <div class="fc">
+        <div class="fc-name">Ємність кріплень</div>
+        <div class="fc-val" id="r_fcap" style="color:var(--info)">—</div>
+        <div class="fc-formula">Σ LC·sin(α)</div>
+      </div>
+      <div class="fc">
+        <div class="fc-name">Маса вантажу</div>
+        <div class="fc-val" id="r_mass" style="color:var(--text2)">—</div>
+        <div class="fc-formula">m·g</div>
+      </div>
+    </div>
+
+    <div class="sec-head">Ризик опрокидання</div>
+    <div id="tipBlock">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:8px;">
+        <div class="fc">
+          <div class="fc-name">Поздовжнє</div>
+          <div class="fc-val" id="r_tip_l">—</div>
+          <div class="fc-formula">Fh·h_cm / (m·g·L/2)</div>
+        </div>
+        <div class="fc">
+          <div class="fc-name">Поперечне</div>
+          <div class="fc-val" id="r_tip_t">—</div>
+          <div class="fc-formula">Fh·h_cm / (m·g·W/2)</div>
+        </div>
+      </div>
+      <div class="prog-bar-wrap">
+        <div class="prog-bar-label"><span>Ризик опрокидання</span><span id="r_tip_pct">0%</span></div>
+        <div class="prog-track"><div class="prog-fill" id="tipFill" style="width:0%;background:var(--safe);"></div></div>
+      </div>
+    </div>
+
+    <div class="sec-head">Стан кріплень</div>
+    <div id="strapList"></div>
+
+    <div class="sec-head">Аналіз за сценаріями</div>
+    <table class="scen-table">
+      <thead><tr><th>Сценарій</th><th>SF</th><th>Стан</th></tr></thead>
+      <tbody id="scenTable"></tbody>
+    </table>
+
+    <div class="sec-head">Діагностика</div>
+    <div id="diagBlock">
+      <div style="color:var(--text3);font-size:11px;padding:8px 0;">Натисніть "Розрахувати" для аналізу</div>
+    </div>
+
+    <div class="sec-head">Легенда</div>
+    <div class="legend">
+      <div class="leg-item"><div class="leg-dot" style="background:#f85149;"></div>Небезпечно (SF &lt; 1.0)</div>
+      <div class="leg-item"><div class="leg-dot" style="background:#d29922;"></div>Допустимо (1.0–1.5)</div>
+      <div class="leg-item"><div class="leg-dot" style="background:#3fb950;"></div>Безпечно (SF ≥ 1.5)</div>
+      <div class="leg-item"><div class="leg-dot" style="background:#bc8cff;"></div>ЦМ — центр мас</div>
+    </div>
+  </aside>
+</div>
+
+<script>
+// ═══════════════════════════════════════════════════════════
+// CONSTANTS & DATA
+// ═══════════════════════════════════════════════════════════
+const G = 9.81;
+
+const CARGO_TYPES = {
+  pallet:    { label:'Піддон',      com_ratio:0.5,  tip_wfactor:1.0  },
+  roll:      { label:'Рулон',       com_ratio:0.65, tip_wfactor:1.4  },
+  bulk:      { label:'Насипний',    com_ratio:0.35, tip_wfactor:0.7  },
+  oversized: { label:'Негабарит',   com_ratio:0.55, tip_wfactor:1.6  },
+  machinery: { label:'Техніка',     com_ratio:0.6,  tip_wfactor:1.5  },
+  container: { label:'Контейнер',   com_ratio:0.5,  tip_wfactor:1.0  },
+};
+
+const SURFACES = {
+  metal_metal:  { label:'Метал / Метал',      mu:0.15 },
+  metal_wood:   { label:'Метал / Дерево',     mu:0.35 },
+  metal_rubber: { label:'Метал / Гума',       mu:0.45 },
+  wood_wood:    { label:'Дерево / Дерево',    mu:0.40 },
+  antiSlip:     { label:'Антиковзний мат',    mu:0.60 },
+  painted:      { label:'Фарб. метал',        mu:0.10 },
+};
+
+const SCENARIOS = {
+  braking:      { label:'Гальмування',   cx:0.8,  cy:0.0, cz:1.0, col:'#f85149', icon:'🛑' },
+  turning_L:    { label:'Поворот ←',     cx:0.0,  cy:0.5, cz:1.0, col:'#e6a817', icon:'↩' },
+  turning_R:    { label:'Поворот →',     cx:0.0,  cy:0.5, cz:1.0, col:'#e6a817', icon:'↪' },
+  acceleration: { label:'Прискорення',   cx:0.5,  cy:0.0, cz:1.0, col:'#58a6ff', icon:'🚀' },
+  uneven:       { label:'Нерівність',    cx:0.3,  cy:0.3, cz:1.3, col:'#bc8cff', icon:'💥' },
+};
+
+const SEC_TYPES = {
+  strap:       { label:'Стяжний ремінь', icon:'🔗', defaultLC:5,  defaultAngle:45, hasAngle:true  },
+  chain:       { label:'Ланцюг',         icon:'⛓',  defaultLC:15, defaultAngle:45, hasAngle:true  },
+  blocking:    { label:'Упор/блокування',icon:'🧱', defaultLC:20, defaultAngle:90, hasAngle:false },
+  antiSlipMat: { label:'Антиковзний мат',icon:'🟩', defaultLC:0,  defaultAngle:0,  hasAngle:false },
+};
+
+// ═══════════════════════════════════════════════════════════
+// STATE
+// ═══════════════════════════════════════════════════════════
+let state = {
+  cargoType: 'pallet',
+  surface: 'metal_wood',
+  scenario: 'braking',
+  securingElements: [],
+  lastResults: null,
+  secIdCounter: 0,
+  animFrame: null,
+  accidentRunning: false,
+  accidentPhase: 0,
+  accidentTimer: 0,
+  cargoOffset: { x:0, y:0, angle:0 },
+};
+
+// ═══════════════════════════════════════════════════════════
+// PHYSICS ENGINE
+// ═══════════════════════════════════════════════════════════
+function runPhysics(scenarioId) {
+  const scen = SCENARIOS[scenarioId];
+  const mass  = +$('p_mass').value;
+  const L     = +$('p_len').value;
+  const W     = +$('p_wid').value;
+  const H     = +$('p_hgt').value;
+  const h_com = +$('p_com').value;
+  const surf  = SURFACES[state.surface];
+
+  // Check anti-slip mat bonus
+  const hasMat = state.securingElements.some(e => e.type === 'antiSlipMat');
+  const mu_base = surf.mu;
+  const mu_eff  = hasMat ? Math.min(mu_base + 0.25, 0.75) : mu_base;
+
+  // Forces (N)
+  const F_weight = mass * G;
+  const F_ix     = mass * G * scen.cx;   // longitudinal inertial
+  const F_iy     = mass * G * scen.cy;   // lateral inertial
+  const F_iz     = mass * G * (scen.cz - 1.0); // additional vertical
+
+  // Normal force (modified by vertical component)
+  const F_normal = Math.max(0, F_weight - F_iz);
+
+  // Friction forces
+  const F_fric_x = mu_eff * F_normal;  // max friction longitudinal
+  const F_fric_y = mu_eff * F_normal;  // max friction lateral
+
+  // Net forces requiring securing
+  const F_net_x = Math.max(0, F_ix - F_fric_x);
+  const F_net_y = Math.max(0, F_iy - F_fric_y);
+
+  // Tipping moments
+  // Longitudinal tipping (cargo tips forward over front edge)
+  const M_tip_x    = F_ix * h_com;
+  const M_stab_x   = F_normal * (L / 2);
+  const tip_ratio_x = M_stab_x > 0 ? M_tip_x / M_stab_x : 0;
+
+  // Lateral tipping (cargo rolls over side edge)
+  const M_tip_y    = F_iy * h_com;
+  const M_stab_y   = F_normal * (W / 2);
+  const tip_ratio_y = M_stab_y > 0 ? M_tip_y / M_stab_y : 0;
+
+  const tip_ratio = Math.max(tip_ratio_x, tip_ratio_y);
+
+  // Securing capacity analysis
+  let cap_x = 0, cap_y = 0;
+  const strapDetails = [];
+
+  for (const el of state.securingElements) {
+    if (el.type === 'antiSlipMat') continue;
+
+    const lc_N = el.lc * 1000;
+    let eff_x = 0, eff_y = 0;
+
+    if (el.type === 'strap' || el.type === 'chain') {
+      const a_rad = el.angle * Math.PI / 180;
+      // Tie-down lashing: vertical component pre-loads, horizontal component resists
+      // EN 12195-1: effective force = LC × sin(α) for tie-down
+      eff_x = lc_N * Math.sin(a_rad);
+      eff_y = lc_N * Math.sin(a_rad) * 0.7; // lateral assumed diagonal arrangement
+    } else if (el.type === 'blocking') {
+      // Direct blocking: full LC in longitudinal direction
+      eff_x = lc_N;
+      eff_y = lc_N * 0.5;
+    }
+
+    const total_eff_x = eff_x * el.count;
+    const total_eff_y = eff_y * el.count;
+    cap_x += total_eff_x;
+    cap_y += total_eff_y;
+
+    // Per-strap force demand
+    const demand_per = el.count > 0 ? (F_net_x / el.count) : 0;
+    const overload_ratio = eff_x > 0 ? demand_per / eff_x : 0;
+
+    strapDetails.push({
+      ...el,
+      eff_x, eff_y,
+      total_eff_x, total_eff_y,
+      demand_per,
+      overload_ratio,
+      overloaded: overload_ratio > 1.0,
+      strained:   overload_ratio > 0.75 && overload_ratio <= 1.0,
+    });
+  }
+
+  // Safety factors
+  const total_resist_x = F_fric_x + cap_x;
+  const total_resist_y = F_fric_y + cap_y;
+
+  const SF_x = F_ix > 0 ? total_resist_x / F_ix : 999;
+  const SF_y = F_iy > 0 ? total_resist_y / F_iy : 999;
+  const SF   = Math.min(SF_x, SF_y === 999 ? SF_x : SF_y);
+
+  // Classification
+  let classification;
+  if (tip_ratio >= 1.0 || SF < 1.0) classification = 'unsafe';
+  else if (tip_ratio >= 0.7 || SF < 1.5) classification = 'acceptable';
+  else classification = 'safe';
+
+  return {
+    mass, L, W, H, h_com,
+    mu_base, mu_eff, hasMat,
+    F_weight, F_ix, F_iy, F_iz,
+    F_normal, F_fric_x, F_fric_y,
+    F_net_x, F_net_y,
+    M_tip_x, M_stab_x, tip_ratio_x,
+    M_tip_y, M_stab_y, tip_ratio_y,
+    tip_ratio, cap_x, cap_y,
+    total_resist_x, total_resist_y,
+    SF_x, SF_y, SF,
+    strapDetails, classification,
+    scenId: scenarioId, scen,
+  };
+}
+
+// Run all 5 scenarios and return array
+function runAllScenarios() {
+  return Object.keys(SCENARIOS).map(id => runPhysics(id));
+}
+
+// ═══════════════════════════════════════════════════════════
+// CANVAS RENDERER
+// ═══════════════════════════════════════════════════════════
+const canvas = document.getElementById('mainCanvas');
+const ctx = canvas.getContext('2d');
+
+function resizeCanvas() {
+  const wrap = canvas.parentElement;
+  canvas.width  = wrap.clientWidth;
+  canvas.height = wrap.clientHeight;
+  if (state.lastResults) drawScene(state.lastResults, state.cargoOffset);
+  else drawEmpty();
+}
+
+function drawEmpty() {
+  const W = canvas.width, H = canvas.height;
+  ctx.clearRect(0, 0, W, H);
+  drawGrid(W, H);
+  drawTruckFloor(W, H, null, null, null);
+
+  // Hint text
+  ctx.fillStyle = 'rgba(139,148,158,0.3)';
+  ctx.font = '600 13px Barlow, sans-serif';
+  ctx.textAlign = 'center';
+  ctx.fillText('Натисніть "Розрахувати" для запуску симуляції', W/2, H/2 - 30);
+  ctx.textAlign = 'left';
+}
+
+function drawGrid(W, H) {
+  ctx.strokeStyle = 'rgba(48,54,61,0.6)';
+  ctx.lineWidth = 0.5;
+  const step = 40;
+  for (let x = 0; x < W; x += step) {
+    ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, H); ctx.stroke();
+  }
+  for (let y = 0; y < H; y += step) {
+    ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke();
+  }
+}
+
+function drawTruckFloor(W, H, results, offset, classification) {
+  const groundY = H * 0.78;
+  const floorH  = 14;
+
+  // Road gradient
+  const roadGrad = ctx.createLinearGradient(0, groundY + floorH, 0, H);
+  roadGrad.addColorStop(0, '#1c2128');
+  roadGrad.addColorStop(1, '#0d1117');
+  ctx.fillStyle = roadGrad;
+  ctx.fillRect(0, groundY + floorH, W, H - groundY - floorH);
+
+  // Truck floor (trailer bed)
+  const fLeft  = W * 0.08;
+  const fRight = W * 0.92;
+  const fWidth = fRight - fLeft;
+
+  // Floor gradient
+  const floorGrad = ctx.createLinearGradient(0, groundY, 0, groundY + floorH);
+  floorGrad.addColorStop(0, '#2d333b');
+  floorGrad.addColorStop(1, '#1c2128');
+  ctx.fillStyle = floorGrad;
+  ctx.fillRect(fLeft, groundY, fWidth, floorH);
+
+  // Floor edge highlight
+  ctx.strokeStyle = '#3d444e';
+  ctx.lineWidth = 1;
+  ctx.strokeRect(fLeft, groundY, fWidth, floorH);
+
+  // Floor planks
+  ctx.strokeStyle = 'rgba(61,68,78,0.4)';
+  ctx.lineWidth = 1;
+  for (let x = fLeft; x < fRight; x += 30) {
+    ctx.beginPath(); ctx.moveTo(x, groundY); ctx.lineTo(x, groundY + floorH); ctx.stroke();
+  }
+
+  // Anti-slip texture if hasMat
+  if (results && results.hasMat) {
+    ctx.strokeStyle = 'rgba(63,185,80,0.15)';
+    ctx.lineWidth = 0.8;
+    for (let x = fLeft + 5; x < fRight; x += 10) {
+      ctx.beginPath(); ctx.moveTo(x, groundY + 2); ctx.lineTo(x, groundY + floorH - 2); ctx.stroke();
+    }
+    ctx.strokeStyle = 'rgba(63,185,80,0.3)';
+    ctx.lineWidth = 1;
+    ctx.strokeRect(fLeft, groundY, fWidth, floorH);
+  }
+
+  // Wheels
+  drawWheel(W * 0.12, groundY + floorH + 14, 14);
+  drawWheel(W * 0.25, groundY + floorH + 14, 14);
+  drawWheel(W * 0.75, groundY + floorH + 14, 14);
+  drawWheel(W * 0.88, groundY + floorH + 14, 14);
+
+  // Cab
+  drawCab(fLeft, groundY, floorH, classification);
+
+  return { groundY, fLeft, fRight, fWidth };
+}
+
+function drawWheel(cx, cy, r) {
+  ctx.fillStyle = '#1c2128';
+  ctx.strokeStyle = '#3d444e';
+  ctx.lineWidth = 2;
+  ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+  ctx.fillStyle = '#2d333b';
+  ctx.beginPath(); ctx.arc(cx, cy, r * 0.5, 0, Math.PI * 2); ctx.fill();
+  ctx.strokeStyle = '#484f58';
+  ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2); ctx.stroke();
+}
+
+function drawCab(fLeft, groundY, floorH, classification) {
+  const cabW  = fLeft * 0.9;
+  const cabH  = 60;
+  const cabX  = 2;
+  const cabY  = groundY - cabH + floorH;
+
+  ctx.fillStyle = '#1c2128';
+  ctx.strokeStyle = '#3d444e';
+  ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  ctx.moveTo(cabX, groundY + floorH);
+  ctx.lineTo(cabX, cabY + 15);
+  ctx.quadraticCurveTo(cabX, cabY, cabX + 10, cabY);
+  ctx.lineTo(cabX + cabW - 5, cabY);
+  ctx.quadraticCurveTo(cabX + cabW, cabY, cabX + cabW, cabY + 15);
+  ctx.lineTo(cabX + cabW, groundY + floorH);
+  ctx.closePath();
+  ctx.fill(); ctx.stroke();
+
+  // Windshield
+  ctx.fillStyle = 'rgba(88,166,255,0.12)';
+  ctx.strokeStyle = 'rgba(88,166,255,0.25)';
+  ctx.beginPath();
+  ctx.roundRect(cabX + 4, cabY + 4, cabW - 8, 20, 2);
+  ctx.fill(); ctx.stroke();
+}
+
+function drawCargo(cx, cy, bw, bh, cargoType, classification, offset) {
+  ctx.save();
+  ctx.translate(cx + offset.x, cy + offset.y);
+  ctx.rotate(offset.angle || 0);
+
+  // Shadow
+  ctx.shadowColor = 'rgba(0,0,0,0.5)';
+  ctx.shadowBlur = 20;
+  ctx.shadowOffsetX = 4; ctx.shadowOffsetY = 4;
+
+  // Main body
+  const col = classification === 'safe' ? '#1f3a2a' : classification === 'unsafe' ? '#3a1f1f' : '#2d2a1a';
+  const borderCol = classification === 'safe' ? '#3fb950' : classification === 'unsafe' ? '#f85149' : '#d29922';
+
+  ctx.fillStyle = col;
+  ctx.beginPath(); ctx.roundRect(-bw/2, -bh, bw, bh, 4); ctx.fill();
+  ctx.shadowBlur = 0; ctx.shadowOffsetX = 0; ctx.shadowOffsetY = 0;
+
+  // Border glow
+  ctx.strokeStyle = borderCol;
+  ctx.lineWidth = 2;
+  if (classification === 'unsafe') {
+    ctx.shadowColor = borderCol;
+    ctx.shadowBlur = 12;
+  }
+  ctx.stroke();
+  ctx.shadowBlur = 0;
+
+  // Internal grid lines (cargo detail)
+  ctx.strokeStyle = 'rgba(255,255,255,0.05)';
+  ctx.lineWidth = 0.8;
+  const cells = 3;
+  for (let i = 1; i < cells; i++) {
+    const xp = -bw/2 + (bw/cells) * i;
+    ctx.beginPath(); ctx.moveTo(xp, -bh); ctx.lineTo(xp, 0); ctx.stroke();
+  }
+  ctx.beginPath(); ctx.moveTo(-bw/2, -bh/2); ctx.lineTo(bw/2, -bh/2); ctx.stroke();
+
+  // Cargo type indicator
+  ctx.fillStyle = 'rgba(255,255,255,0.12)';
+  ctx.font = `${Math.min(bh*0.35, 22)}px sans-serif`;
+  ctx.textAlign = 'center';
+  const icons = { pallet:'📦', roll:'🛢', bulk:'⛏', oversized:'🏗', machinery:'⚙', container:'🗃' };
+  ctx.fillText(icons[cargoType] || '📦', 0, -bh/2 + 8);
+  ctx.textAlign = 'left';
+
+  ctx.restore();
+}
+
+function drawCOM(cx, comY, offset) {
+  const x = cx + offset.x;
+  const y = comY + offset.y;
+  // Crosshair
+  ctx.strokeStyle = '#bc8cff';
+  ctx.lineWidth = 1.5;
+  ctx.shadowColor = '#bc8cff';
+  ctx.shadowBlur = 8;
+  const s = 10;
+  ctx.beginPath(); ctx.moveTo(x - s, y); ctx.lineTo(x + s, y); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(x, y - s); ctx.lineTo(x, y + s); ctx.stroke();
+  ctx.shadowBlur = 0;
+  // Circle
+  ctx.strokeStyle = '#bc8cff';
+  ctx.lineWidth = 1.5;
+  ctx.beginPath(); ctx.arc(x, y, 5, 0, Math.PI * 2); ctx.stroke();
+  // Label
+  ctx.fillStyle = '#bc8cff';
+  ctx.font = '700 10px JetBrains Mono, monospace';
+  ctx.fillText('ЦМ', x + 8, y - 4);
+}
+
+function drawForceArrow(ox, oy, dx, dy, color, label, valKN) {
+  const len = Math.sqrt(dx*dx + dy*dy);
+  if (len < 3) return;
+  ctx.save();
+  ctx.strokeStyle = color;
+  ctx.fillStyle = color;
+  ctx.lineWidth = 2.5;
+  ctx.shadowColor = color;
+  ctx.shadowBlur = 10;
+  ctx.beginPath();
+  ctx.moveTo(ox, oy);
+  ctx.lineTo(ox + dx, oy + dy);
+  ctx.stroke();
+  // Arrowhead
+  const ang = Math.atan2(dy, dx);
+  ctx.translate(ox + dx, oy + dy);
+  ctx.rotate(ang);
+  ctx.beginPath();
+  ctx.moveTo(0, 0); ctx.lineTo(-12, -5); ctx.lineTo(-12, 5); ctx.closePath();
+  ctx.fill();
+  ctx.shadowBlur = 0;
+  ctx.restore();
+  // Label
+  if (label) {
+    ctx.fillStyle = color;
+    ctx.font = '600 10px JetBrains Mono, monospace';
+    ctx.textAlign = 'center';
+    const lx = ox + dx/2 + (dy !== 0 ? 16 : 0);
+    const ly = oy + dy/2 + (dx !== 0 ? -8 : 0);
+    ctx.fillText(`${label} ${valKN.toFixed(1)}kN`, lx, ly);
+    ctx.textAlign = 'left';
+  }
+}
+
+function drawStraps(cx, groundY, bw, bh, offset) {
+  for (const el of state.securingElements) {
+    if (el.type === 'antiSlipMat' || el.type === 'blocking') continue;
+    const a_rad = el.angle * Math.PI / 180;
+    const col = el.overloaded ? '#f85149' : el.strained ? '#d29922' : '#3fb950';
+    ctx.strokeStyle = col;
+    ctx.lineWidth = el.type === 'chain' ? 3 : 2;
+    ctx.shadowColor = col;
+    ctx.shadowBlur = 6;
+    ctx.setLineDash(el.type === 'chain' ? [6,3] : []);
+
+    for (let i = 0; i < Math.min(el.count, 6); i++) {
+      const spread = (i - (el.count - 1) / 2) * (bw / Math.max(el.count, 1));
+      const topX = cx + offset.x + spread * 0.5;
+      const topY = groundY + offset.y - bh * 0.6;
+      const anchorLen = bh * 0.8 / Math.sin(a_rad);
+      // Left strap
+      ctx.beginPath();
+      ctx.moveTo(topX, topY);
+      ctx.lineTo(topX - anchorLen * Math.cos(a_rad), topY + anchorLen * Math.sin(a_rad));
+      ctx.stroke();
+      // Right strap
+      ctx.beginPath();
+      ctx.moveTo(topX, topY);
+      ctx.lineTo(topX + anchorLen * Math.cos(a_rad), topY + anchorLen * Math.sin(a_rad));
+      ctx.stroke();
+    }
+    ctx.setLineDash([]);
+    ctx.shadowBlur = 0;
+  }
+}
+
+function drawBlocking(cx, groundY, bw, bh, offset) {
+  for (const el of state.securingElements) {
+    if (el.type !== 'blocking') continue;
+    const bsz = 14;
+    ctx.fillStyle = 'rgba(88,166,255,0.15)';
+    ctx.strokeStyle = '#58a6ff';
+    ctx.lineWidth = 1.5;
+    ctx.shadowColor = '#58a6ff';
+    ctx.shadowBlur = 6;
+    // Front block
+    ctx.fillRect(cx + offset.x - bw/2 - bsz - 2, groundY + offset.y - bh * 0.4, bsz, bh * 0.4);
+    ctx.strokeRect(cx + offset.x - bw/2 - bsz - 2, groundY + offset.y - bh * 0.4, bsz, bh * 0.4);
+    // Rear block
+    ctx.fillRect(cx + offset.x + bw/2 + 2, groundY + offset.y - bh * 0.4, bsz, bh * 0.4);
+    ctx.strokeRect(cx + offset.x + bw/2 + 2, groundY + offset.y - bh * 0.4, bsz, bh * 0.4);
+    ctx.shadowBlur = 0;
+  }
+}
+
+function drawTippingIndicator(cx, groundY, bw, bh, results, offset) {
+  if (!results) return;
+  const tipRatio = results.tip_ratio;
+  const isCritical = tipRatio >= 1.0;
+
+  // Stability base line
+  ctx.strokeStyle = isCritical ? 'rgba(248,81,73,0.5)' : 'rgba(63,185,80,0.3)';
+  ctx.lineWidth = 1;
+  ctx.setLineDash([4, 4]);
+  ctx.beginPath();
+  ctx.moveTo(cx + offset.x - bw/2, groundY);
+  ctx.lineTo(cx + offset.x + bw/2, groundY);
+  ctx.stroke();
+  ctx.setLineDash([]);
+
+  // Stability cone (inverted triangle from COM to base)
+  const comX = cx + offset.x;
+  const comY = groundY + offset.y - results.h_com / results.H * bh;
+  const stableHalfW = (results.W / 2) / results.L * bw;
+
+  ctx.fillStyle = isCritical ? 'rgba(248,81,73,0.06)' : 'rgba(63,185,80,0.06)';
+  ctx.beginPath();
+  ctx.moveTo(comX, comY);
+  ctx.lineTo(cx + offset.x - stableHalfW, groundY);
+  ctx.lineTo(cx + offset.x + stableHalfW, groundY);
+  ctx.closePath();
+  ctx.fill();
+
+  if (isCritical) {
+    ctx.fillStyle = '#f85149';
+    ctx.font = 'bold 11px Barlow Condensed, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('⚠ НЕБЕЗПЕКА ПЕРЕКИДАННЯ', comX, comY - 16);
+    ctx.textAlign = 'left';
+  }
+}
+
+function drawScene(results, offset) {
+  const W = canvas.width, H = canvas.height;
+  ctx.clearRect(0, 0, W, H);
+  drawGrid(W, H);
+
+  const { groundY, fLeft, fRight } = drawTruckFloor(W, H, results, offset, results.classification);
+
+  // Scale: use height as reference — fit cargo to ~50% of canvas height
+  const maxCargoH = H * 0.5;
+  const scale = Math.min(maxCargoH / results.H, (fRight - fLeft) * 0.6 / results.L);
+  const bh = results.H * scale;
+  const bw = results.L * scale;
+  const cx = W * 0.52;
+
+  // Draw tipping indicator
+  drawTippingIndicator(cx, groundY, bw, bh, results, offset);
+
+  // Draw straps behind cargo
+  drawStraps(cx, groundY, bw, bh, offset);
+
+  // Draw cargo
+  drawCargo(cx, groundY, bw, bh, state.cargoType, results.classification, offset);
+
+  // Draw blocking elements
+  drawBlocking(cx, groundY, bw, bh, offset);
+
+  // Draw COM
+  const comY = groundY - (results.h_com / results.H) * bh;
+  drawCOM(cx, comY, offset);
+
+  // Draw force vectors
+  const fScale = Math.min(bh * 0.8, 80) / Math.max(results.F_weight, 1) * 1000;
+  const comX = cx + offset.x;
+  const comCanvasY = comY + offset.y;
+
+  // Longitudinal force (X direction)
+  if (results.F_ix > 100) {
+    const dir = results.scen.cx > 0 ? 1 : -1; // positive = forward = toward cab = left
+    drawForceArrow(comX, comCanvasY, -dir * results.F_ix * fScale * 0.001, 0,
+      '#f85149', 'Fx', results.F_ix / 1000);
+  }
+  // Lateral force (Y direction — shown as slanted for side view)
+  if (results.F_iy > 100) {
+    drawForceArrow(comX, comCanvasY, results.F_iy * fScale * 0.001 * 0.5,
+      -results.F_iy * fScale * 0.001 * 0.3,
+      '#e6a817', 'Fy', results.F_iy / 1000);
+  }
+  // Weight (downward)
+  drawForceArrow(comX, comCanvasY, 0, Math.min(results.F_weight * fScale * 0.0002, 50),
+    '#58a6ff', 'Fg', results.F_weight / 1000);
+  // Friction (opposing longitudinal)
+  if (results.F_fric_x > 100 && results.F_ix > 100) {
+    const dir = results.scen.cx > 0 ? 1 : -1;
+    drawForceArrow(comX, groundY - 8 + offset.y, dir * results.F_fric_x * fScale * 0.001 * 0.6, 0,
+      '#3fb950', 'μ', results.F_fric_x / 1000);
+  }
+
+  // Dimension annotations
+  ctx.fillStyle = 'rgba(139,148,158,0.5)';
+  ctx.font = '10px JetBrains Mono, monospace';
+  ctx.textAlign = 'center';
+  ctx.fillText(`L=${results.L}м`, cx, groundY + 28);
+  ctx.textAlign = 'right';
+  ctx.fillText(`H=${results.H}м`, cx - bw/2 - 4, groundY - bh/2);
+  ctx.textAlign = 'left';
+
+  // Surface friction label
+  ctx.fillStyle = results.hasMat ? 'rgba(63,185,80,0.6)' : 'rgba(139,148,158,0.4)';
+  ctx.font = '10px JetBrains Mono, monospace';
+  ctx.fillText(`μ=${results.mu_eff.toFixed(2)}${results.hasMat ? ' (мат+)' : ''}`, fLeft + 6, groundY - 4);
+}
+
+// ═══════════════════════════════════════════════════════════
+// RESULTS PANEL UPDATER
+// ═══════════════════════════════════════════════════════════
+function updateResultsPanel(results) {
+  const c = results.classification;
+
+  // SF Badge
+  const sfEl = $('sfBadge');
+  sfEl.className = 'sf-badge sf-badge-' + (c === 'safe' ? 'safe' : c === 'unsafe' ? 'unsafe' : 'acceptable');
+  const sfColor = c === 'safe' ? 'var(--safe)' : c === 'unsafe' ? 'var(--danger)' : 'var(--warn)';
+  $('sfNum').textContent = results.SF < 500 ? results.SF.toFixed(2) : '∞';
+  $('sfNum').style.color = sfColor;
+  const labels = { safe:'✅ БЕЗПЕЧНО', acceptable:'⚠ ДОПУСТИМО', unsafe:'❌ НЕБЕЗПЕЧНО' };
+  $('sfClass').textContent = labels[c];
+  $('sfClass').style.color = sfColor;
+
+  // Header status
+  const csEl = $('canvasStatus');
+  csEl.className = 'canvas-status cs-' + (c === 'safe' ? 'safe' : c === 'unsafe' ? 'danger' : 'warn');
+  csEl.textContent = labels[c];
+
+  // Force cards
+  $('r_fix').textContent = (results.F_ix/1000).toFixed(2) + ' кН';
+  $('r_fiy').textContent = (results.F_iy/1000).toFixed(2) + ' кН';
+  $('r_ffric').textContent = (results.F_fric_x/1000).toFixed(2) + ' кН';
+  $('r_fnet').textContent = (results.F_net_x/1000).toFixed(2) + ' кН';
+  $('r_fcap').textContent = (results.cap_x/1000).toFixed(2) + ' кН';
+  $('r_mass').textContent = (results.F_weight/1000).toFixed(2) + ' кН';
+
+  // Info bar
+  $('ci_sf').textContent = `SF = ${results.SF < 500 ? results.SF.toFixed(2) : '∞'}`;
+  $('ci_fric').textContent = `μ = ${results.mu_eff.toFixed(2)}`;
+  $('ci_tip').textContent = `Оп. = ${(results.tip_ratio * 100).toFixed(0)}%`;
+  $('ci_scen').textContent = `Сценарій: ${results.scen.label}`;
+
+  // Tipping
+  const tipPct = Math.min(results.tip_ratio * 100, 100);
+  const tipColor = results.tip_ratio >= 1 ? 'var(--danger)' : results.tip_ratio >= 0.7 ? 'var(--warn)' : 'var(--safe)';
+  $('r_tip_l').textContent = results.tip_ratio_x.toFixed(3);
+  $('r_tip_l').style.color = results.tip_ratio_x >= 0.7 ? 'var(--warn)' : 'var(--safe)';
+  $('r_tip_t').textContent = results.tip_ratio_y.toFixed(3);
+  $('r_tip_t').style.color = results.tip_ratio_y >= 0.7 ? 'var(--warn)' : 'var(--safe)';
+  $('r_tip_pct').textContent = tipPct.toFixed(0) + '%';
+  $('tipFill').style.width = tipPct + '%';
+  $('tipFill').style.background = tipColor;
+
+  // Strap details
+  const strapList = $('strapList');
+  if (results.strapDetails.length === 0) {
+    strapList.innerHTML = '<div style="color:var(--text3);font-size:11px;padding:6px 0;">Немає елементів кріплення</div>';
+  } else {
+    strapList.innerHTML = results.strapDetails.map((el, i) => {
+      const col = el.overloaded ? 'var(--danger)' : el.strained ? 'var(--warn)' : 'var(--safe)';
+      const stat = el.overloaded ? '⚠ ПЕРЕВАНТАЖЕННЯ' : el.strained ? '⟳ НАВАНТАЖЕНИЙ' : '✓ OK';
+      const dotCol = el.overloaded ? '#f85149' : el.strained ? '#d29922' : '#3fb950';
+      return `<div class="strap-row">
+        <div class="strap-status" style="background:${dotCol};box-shadow:0 0 6px ${dotCol};"></div>
+        <div class="strap-detail">
+          <div class="strap-name">${el.icon} ${el.label} ×${el.count}</div>
+          <div class="strap-data">
+            LC=${el.lc}кН | α=${el.angle}° | Eff=${(el.eff_x/1000).toFixed(2)}кН/шт |
+            Навант.=${(el.overload_ratio*100).toFixed(0)}%
+          </div>
+        </div>
+        <div style="font-size:10px;font-weight:700;color:${col};font-family:'JetBrains Mono',monospace;">${stat}</div>
+      </div>`;
+    }).join('');
+
+    // Update state with overload info
+    results.strapDetails.forEach((el, i) => {
+      state.securingElements[i].overloaded = el.overloaded;
+      state.securingElements[i].strained = el.strained;
+    });
+  }
+
+  // Scenario comparison table
+  const allResults = runAllScenarios();
+  const worstIdx = allResults.reduce((wi, r, i) => r.SF < allResults[wi].SF ? i : wi, 0);
+  $('scenTable').innerHTML = allResults.map((r, i) => {
+    const scen = SCENARIOS[r.scenId];
+    const isWorst = i === worstIdx;
+    const cls = r.SF >= 1.5 ? 'safe' : r.SF >= 1.0 ? 'warn' : 'danger';
+    const chipLabels = { safe:'✓ БЕЗПЕЧНО', warn:'⚠ ДОПУСТ.', danger:'✗ НЕБЕЗП.' };
+    return `<tr${isWorst ? ' class="worst"' : ''}>
+      <td style="color:${scen.col}">${scen.icon} ${scen.label}</td>
+      <td style="color:${cls==='safe'?'var(--safe)':cls==='warn'?'var(--warn)':'var(--danger)'}">${r.SF<500?r.SF.toFixed(2):'∞'}</td>
+      <td><span class="chip chip-${cls}">${chipLabels[cls]}</span></td>
+    </tr>`;
+  }).join('');
+
+  // Diagnostics
+  buildDiagnostics(results);
+}
+
+function buildDiagnostics(r) {
+  const diag = $('diagBlock');
+  const errors = [];
+  const warnings = [];
+  const ok = [];
+
+  // Error checks
+  if (r.SF < 1.0) {
+    const deficit = (r.F_net_x / 1000).toFixed(2);
+    const needed  = Math.ceil(r.F_net_x / (r.strapDetails[0]?.eff_x || 5000));
+    errors.push({
+      title: '❌ НЕДОСТАТНЄ КРІПЛЕННЯ',
+      desc: `Сила інерції (${(r.F_ix/1000).toFixed(2)} кН) перевищує суму тертя та кріплення. Дефіцит зусилля: ${deficit} кН. При поточному μ=${r.mu_eff.toFixed(2)} необхідне додаткове зусилля ${deficit} кН.`,
+      fix: `Рекомендація: додати ще ~${Math.max(1,needed)} ременів (LC≥5кН, α=45°) або замінити поверхню на антиковзний мат (μ≥0.60).`,
+    });
+  }
+
+  if (r.tip_ratio >= 1.0) {
+    errors.push({
+      title: '❌ КРИТИЧНИЙ РИЗИК ПЕРЕКИДАННЯ',
+      desc: `Момент перекидання (${(r.M_tip_x/1000).toFixed(1)} кНм) перевищує момент стійкості (${(r.M_stab_x/1000).toFixed(1)} кНм). ЦМ занадто високо (${r.h_com.toFixed(2)}м) відносно ширини основи (${r.W.toFixed(2)}м).`,
+      fix: `Рекомендація: знизити вантаж або розмістити важкі елементи нижче. Мінімальна ширина основи для даної висоти ЦМ: ${(r.h_com * r.scen.cy * 2).toFixed(2)}м.`,
+    });
+  }
+
+  r.strapDetails.forEach(el => {
+    if (el.overloaded) {
+      errors.push({
+        title: `❌ ПЕРЕВАНТАЖЕННЯ: ${el.label}`,
+        desc: `Навантаження на елемент: ${(el.demand_per/1000).toFixed(2)} кН, тоді як LC = ${el.lc} кН. Ремінь навантажений на ${(el.overload_ratio*100).toFixed(0)}%. Перевищення в ${(el.overload_ratio).toFixed(2)} рази.`,
+        fix: `Рекомендація: збільшити кількість ременів до ${Math.ceil(r.F_net_x / (el.eff_x || 1))} шт., або замінити на ланцюги з більшою LC.`,
+      });
+    }
+  });
+
+  // Warnings
+  if (r.SF >= 1.0 && r.SF < 1.25) {
+    warnings.push({
+      title: '⚠ МІНІМАЛЬНИЙ ЗАПАС БЕЗПЕКИ',
+      desc: `SF = ${r.SF.toFixed(2)} — граничне значення. Стандарт EN 12195-1 рекомендує SF ≥ 1.5. При будь-якому відхиленні параметрів кріплення ситуація стане небезпечною.`,
+    });
+  }
+
+  if (r.tip_ratio >= 0.7 && r.tip_ratio < 1.0) {
+    warnings.push({
+      title: '⚠ ПІДВИЩЕНИЙ РИЗИК ПЕРЕКИДАННЯ',
+      desc: `Коефіцієнт стійкості: ${(r.tip_ratio * 100).toFixed(0)}% від критичного. Рекомендується знизити центр мас або зменшити прискорення.`,
+    });
+  }
+
+  if (r.mu_base < 0.2 && !r.hasMat) {
+    warnings.push({
+      title: '⚠ НИЗЬКИЙ КОЕФІЦІЄНТ ТЕРТЯ',
+      desc: `μ = ${r.mu_base.toFixed(2)} — дуже слизька поверхня. Майже вся сила кріплення повинна утримувати вантаж. Рекомендується антиковзний мат (μ +0.25).`,
+    });
+  }
+
+  if (state.securingElements.length === 0) {
+    warnings.push({
+      title: '⚠ ВІДСУТНІ ЕЛЕМЕНТИ КРІПЛЕННЯ',
+      desc: `Вантаж утримується лише силою тертя. При μ=${r.mu_base.toFixed(2)} максимально допустиме прискорення: ${(r.mu_base * 9.81).toFixed(2)} м/с² (${(r.mu_base).toFixed(2)}g). Поточний сценарій: ${r.scen.cx.toFixed(1)}g.`,
+    });
+  }
+
+  // OK checks
+  if (r.SF >= 1.5) {
+    ok.push({ title: `✅ Коефіцієнт безпеки SF = ${r.SF.toFixed(2)}` });
+  }
+  if (r.tip_ratio < 0.5) {
+    ok.push({ title: `✅ Ризик перекидання мінімальний (${(r.tip_ratio*100).toFixed(0)}%)` });
+  }
+
+  let html = '';
+  errors.forEach(e => {
+    html += `<div class="err-item"><div class="err-title">${e.title}</div><div class="err-desc">${e.desc}</div><div class="err-fix">→ ${e.fix}</div></div>`;
+  });
+  warnings.forEach(w => {
+    html += `<div class="warn-item"><div class="warn-title">${w.title}</div><div class="warn-desc">${w.desc}</div></div>`;
+  });
+  if (ok.length > 0 && errors.length === 0) {
+    html += `<div class="ok-item">${ok.map(o=>`<div class="ok-title">${o.title}</div>`).join('')}</div>`;
+  }
+
+  diag.innerHTML = html || '<div style="color:var(--text3);font-size:11px;padding:8px 0;">Немає критичних проблем</div>';
+}
+
+// ═══════════════════════════════════════════════════════════
+// ACCIDENT ANIMATION
+// ═══════════════════════════════════════════════════════════
+function runAccidentMode() {
+  const results = runPhysics(state.scenario);
+  state.lastResults = results;
+
+  if (state.animFrame) cancelAnimationFrame(state.animFrame);
+  state.accidentRunning = true;
+  state.accidentPhase = 0;
+  state.accidentTimer = 0;
+
+  $('accidentBtn').disabled = true;
+  $('accidentBtn').textContent = '▶ Відтворення...';
+
+  const overlay = $('accidentOverlay');
+  const label   = $('accLabel');
+  const accelFactor = results.SF < 1.0 ? (1 / results.SF) * 1.5 : 0.3;
+  const isTipping = results.tip_ratio >= 1.0;
+  let frame = 0;
+
+  function animate() {
+    if (!state.accidentRunning) return;
+    frame++;
+    const t = frame / 60; // seconds at 60fps
+
+    let offsetX = 0, offsetY = 0, angle = 0;
+
+    // Phase 0: force buildup (0 - 0.8s)
+    if (t < 0.8) {
+      offsetX = 0; offsetY = 0; angle = 0;
+    }
+    // Phase 1: sliding/tipping begins (0.8s - 2.5s)
+    else if (t < 2.5) {
+      const phase = (t - 0.8) / 1.7;
+      if (isTipping) {
+        angle = phase * accelFactor * 0.4;
+        offsetX = phase * 20 * accelFactor;
+        offsetY = -phase * 15 * accelFactor;
+      } else if (results.classification !== 'safe') {
+        offsetX = phase * phase * 80 * Math.min(accelFactor, 3);
+        offsetY = 0;
+        // Oscillation if straps present but overstressed
+        if (results.strapDetails.some(s => s.overloaded)) {
+          offsetY = Math.sin(frame * 0.3) * phase * 5;
+        }
+      } else {
+        // Safe - small vibration only
+        offsetX = Math.sin(frame * 0.2) * 3;
+        offsetY = Math.sin(frame * 0.4) * 2;
+      }
+    }
+    // Phase 2: crash / impact (2.5s - 3.2s)
+    else if (t < 3.2) {
+      const phase = (t - 2.5) / 0.7;
+      if (results.classification !== 'safe') {
+        offsetX = Math.min(80 * accelFactor, 120);
+        if (isTipping) {
+          angle = Math.PI / 2 * phase * accelFactor;
+          offsetY = phase * 30;
+        }
+        // Flash effect
+        if (t > 2.5 && t < 2.7) {
+          overlay.classList.add('flash');
+          label.style.display = 'block';
+          setTimeout(() => { overlay.classList.remove('flash'); label.style.display = 'none'; }, 300);
+        }
+      }
+    }
+    // Phase 3: settle (3.2s - 4s)
+    else if (t < 4.0) {
+      const phase = (t - 3.2) / 0.8;
+      if (results.classification !== 'safe') {
+        offsetX = (1 - phase * 0.3) * Math.min(80 * accelFactor, 120);
+        if (isTipping) { angle = Math.PI / 2 * (1 - phase * 0.1); }
+      }
+    }
+    // End
+    else {
+      state.accidentRunning = false;
+      state.cargoOffset = { x: 0, y: 0, angle: 0 };
+      drawScene(results, state.cargoOffset);
+      $('accidentBtn').disabled = false;
+      $('accidentBtn').textContent = '💥 Режим аварії';
+      return;
+    }
+
+    state.cargoOffset = { x: offsetX, y: offsetY, angle };
+    drawScene(results, state.cargoOffset);
+    state.animFrame = requestAnimationFrame(animate);
+  }
+
+  state.animFrame = requestAnimationFrame(animate);
+}
+
+// ═══════════════════════════════════════════════════════════
+// SECURING ELEMENTS UI
+// ═══════════════════════════════════════════════════════════
+function addSecuring(type) {
+  const def = SEC_TYPES[type];
+  const id = ++state.secIdCounter;
+  state.securingElements.push({
+    id, type,
+    label: def.label,
+    icon: def.icon,
+    lc: def.defaultLC,
+    angle: def.defaultAngle,
+    count: 2,
+    overloaded: false,
+    strained: false,
+  });
+  renderSecList();
+  onInputChange();
+}
+
+function removeSecuring(id) {
+  state.securingElements = state.securingElements.filter(e => e.id !== id);
+  renderSecList();
+  onInputChange();
+}
+
+function renderSecList() {
+  const list = $('secList');
+  if (state.securingElements.length === 0) {
+    list.innerHTML = '<div style="color:var(--text3);font-size:11px;padding:4px 0 8px;">Немає елементів — додайте нижче</div>';
+    return;
+  }
+  list.innerHTML = state.securingElements.map(el => {
+    const def = SEC_TYPES[el.type];
+    return `<div class="sec-item">
+      <div class="sec-item-head">
+        <div class="sec-item-title">${el.icon} ${el.label}</div>
+        <div class="sec-item-del" onclick="removeSecuring(${el.id})">✕</div>
+      </div>
+      <div class="sec-item-row">
+        <div class="inp-group" style="margin:0">
+          <div class="inp-label" style="font-size:9px;">Кількість</div>
+          <input type="number" value="${el.count}" min="1" max="20"
+            onchange="updateSec(${el.id},'count',this.value)" style="padding:5px 8px;font-size:12px;">
+        </div>
+        ${el.type !== 'antiSlipMat' ? `
+        <div class="inp-group" style="margin:0">
+          <div class="inp-label" style="font-size:9px;">LC (кН)</div>
+          <input type="number" value="${el.lc}" min="0.5" max="50" step="0.5"
+            onchange="updateSec(${el.id},'lc',this.value)" style="padding:5px 8px;font-size:12px;">
+        </div>` : '<div></div>'}
+      </div>
+      ${def.hasAngle ? `
+      <div class="inp-group" style="margin:6px 0 0;">
+        <div class="inp-label" style="font-size:9px;">Кут кріплення α
+          <span style="font-family:'JetBrains Mono';color:var(--amber);font-size:11px;">${el.angle}°</span>
+        </div>
+        <input type="range" min="10" max="90" step="5" value="${el.angle}"
+          oninput="updateSec(${el.id},'angle',this.value);this.previousElementSibling.querySelector('span').textContent=this.value+'°'">
+      </div>` : ''}
+    </div>`;
+  }).join('');
+}
+
+function updateSec(id, field, value) {
+  const el = state.securingElements.find(e => e.id === id);
+  if (el) el[field] = parseFloat(value) || 0;
+  onInputChange();
+}
+
+// ═══════════════════════════════════════════════════════════
+// UI CONTROLLERS
+// ═══════════════════════════════════════════════════════════
+function setCargoType(card) {
+  document.querySelectorAll('.type-card').forEach(c => c.classList.remove('active'));
+  card.classList.add('active');
+  state.cargoType = card.dataset.type;
+  // Suggest COM height based on type
+  const ct = CARGO_TYPES[state.cargoType];
+  const h = parseFloat($('p_hgt').value);
+  const suggestedCom = +(h * ct.com_ratio).toFixed(2);
+  $('p_com').value = suggestedCom;
+  $('p_com_r').value = suggestedCom;
+  onInputChange();
+}
+
+function setSurface(card) {
+  document.querySelectorAll('.surf-card').forEach(c => c.classList.remove('active'));
+  card.classList.add('active');
+  state.surface = card.dataset.surf;
+  onInputChange();
+}
+
+function setScenario(btn) {
+  document.querySelectorAll('.scen-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  state.scenario = btn.dataset.scen;
+  onInputChange();
+}
+
+function syncR(targetId, value) {
+  $(targetId).value = value;
+  // Auto-update COM suggestion when height changes
+  if (targetId === 'p_hgt' || targetId === 'p_hgt_r') {
+    const ct = CARGO_TYPES[state.cargoType];
+    const h = parseFloat(value);
+    const sugCom = +(h * ct.com_ratio).toFixed(2);
+    $('p_com').value = sugCom;
+    $('p_com_r').value = sugCom;
+  }
+  onInputChange();
+}
+
+function onInputChange() {
+  if (state.lastResults) runCalculation();
+}
+
+function runCalculation() {
+  const results = runPhysics(state.scenario);
+  state.lastResults = results;
+  state.cargoOffset = { x: 0, y: 0, angle: 0 };
+  drawScene(results, state.cargoOffset);
+  updateResultsPanel(results);
+}
+
+function generateTask() {
+  const types = Object.keys(CARGO_TYPES);
+  const surfs = Object.keys(SURFACES);
+  const cargoType = types[Math.floor(Math.random() * types.length)];
+  const surf = surfs[Math.floor(Math.random() * surfs.length)];
+
+  $('p_mass').value  = Math.round((Math.random() * 12000 + 500) / 50) * 50;
+  const L = +(Math.random() * 3.5 + 0.8).toFixed(1);
+  const W = +(Math.random() * 1.8 + 0.5).toFixed(1);
+  const H = +(Math.random() * 2.5 + 0.5).toFixed(1);
+  $('p_len').value = L; $('p_len_r').value = L;
+  $('p_wid').value = W; $('p_wid_r').value = W;
+  $('p_hgt').value = H; $('p_hgt_r').value = H;
+
+  const ct = CARGO_TYPES[cargoType];
+  const com = +(H * ct.com_ratio * (0.9 + Math.random() * 0.2)).toFixed(2);
+  $('p_com').value = com; $('p_com_r').value = com;
+
+  // Set type card
+  document.querySelectorAll('.type-card').forEach(c => {
+    c.classList.toggle('active', c.dataset.type === cargoType);
+  });
+  state.cargoType = cargoType;
+
+  // Set surface
+  document.querySelectorAll('.surf-card').forEach(c => {
+    c.classList.toggle('active', c.dataset.surf === surf);
+  });
+  state.surface = surf;
+
+  // Random securing
+  state.securingElements = [];
+  state.secIdCounter = 0;
+  const numStraps = Math.floor(Math.random() * 4) + 1;
+  for (let i = 0; i < numStraps; i++) {
+    addSecuring(Math.random() > 0.7 ? 'chain' : 'strap');
+    const last = state.securingElements[state.securingElements.length - 1];
+    last.count = Math.floor(Math.random() * 4) + 1;
+    last.angle = [25, 30, 35, 40, 45, 55, 60][Math.floor(Math.random() * 7)];
+    last.lc = [2.5, 4, 5, 8, 10][Math.floor(Math.random() * 5)];
+  }
+  if (Math.random() > 0.5) addSecuring('antiSlipMat');
+  renderSecList();
+  runCalculation();
+}
+
+function resetAll() {
+  state.securingElements = [];
+  state.secIdCounter = 0;
+  state.lastResults = null;
+  state.cargoOffset = { x:0, y:0, angle:0 };
+  if (state.animFrame) cancelAnimationFrame(state.animFrame);
+  state.accidentRunning = false;
+  renderSecList();
+  drawEmpty();
+  $('sfNum').textContent = '—';
+  $('sfClass').textContent = 'НЕ РОЗРАХОВАНО';
+  $('canvasStatus').className = 'canvas-status cs-warn';
+  $('canvasStatus').textContent = '⏸ ВВЕДІТЬ ДАНІ';
+  $('diagBlock').innerHTML = '<div style="color:var(--text3);font-size:11px;padding:8px 0;">Натисніть "Розрахувати" для аналізу</div>';
+  $('strapList').innerHTML = '';
+  $('scenTable').innerHTML = '';
+  $('forceGrid').querySelectorAll('.fc-val').forEach(el => el.textContent = '—');
+  ['r_tip_l','r_tip_t','r_tip_pct'].forEach(id => $(id).textContent = '—');
+  $('tipFill').style.width = '0%';
+  $('accidentBtn').disabled = false;
+  $('accidentBtn').textContent = '💥 Режим аварії';
+}
+
+// ═══════════════════════════════════════════════════════════
+// UTILS
+// ═══════════════════════════════════════════════════════════
+function $(id) { return document.getElementById(id); }
+
+// ═══════════════════════════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════════════════════════
+window.addEventListener('resize', resizeCanvas);
+
+// Initial setup
+renderSecList();
+resizeCanvas();
+drawEmpty();
+
+// Add a default strap on load
+addSecuring('strap');
+const def = state.securingElements[0];
+def.count = 4; def.lc = 5; def.angle = 45;
+renderSecList();
+
+// Auto-calculate after short delay
+setTimeout(() => runCalculation(), 200);
+</script>
+</body>
+</html>
